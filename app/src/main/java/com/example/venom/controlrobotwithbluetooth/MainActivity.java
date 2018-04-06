@@ -14,13 +14,21 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.jdom2.input.SAXBuilder;
+import org.opencv.android.OpenCVLoader;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Vector;
+
+import org.jdom2.*;
 
 public class MainActivity extends AppCompatActivity {
+
     BluetoothAdapter mBluetoothAdapter;
     BluetoothSocket mmSocket;
     BluetoothDevice mmDevice;
@@ -30,6 +38,9 @@ public class MainActivity extends AppCompatActivity {
     String a;
     Editable b;
 
+    Vector<Sequence> sequences = new Vector<>();
+
+    final static String TAG = "MainActivity";
 
     final static int FORWARD = 0;
     final static int LEFT = 1;
@@ -45,6 +56,11 @@ public class MainActivity extends AppCompatActivity {
 
     // Used to load the 'native-lib' library on application startup.
     static {
+        if (!OpenCVLoader.initDebug()) {
+            Log.d(TAG, "opencv not loaded");
+        } else {
+            Log.d(TAG, "opencv loaded");
+        }
         System.loadLibrary("native-lib");
     }
 
@@ -132,9 +148,32 @@ public class MainActivity extends AppCompatActivity {
         // myLabel.setText("Bluetooth Opened");
     }
 
-    public void Forward(View view) {
+    public void SendSequence(View view) {
         try {
-            mmOutputStream.write(FORWARD);
+            mmOutputStream.write(Sequence.START_SEQUENCE);
+            for (int i = 0; i < Sequence.NUMBER_OF_SERVOS; i++) {
+                mmOutputStream.write((new Random()).nextInt(180));
+            }
+            mmOutputStream.write(Sequence.STOP_SEQUENCE);
+        } catch (IOException e) {
+            Toast.makeText(MainActivity.this, "Connection not established with the robot", Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+        }
+    }
+
+    public void SendOne(View view) {
+        int servo = (new Random()).nextInt(17);
+
+        try {
+            mmOutputStream.write(Sequence.START_SEQUENCE);
+            for (int i = 0; i < Sequence.NUMBER_OF_SERVOS; i++) {
+                if (i == servo) {
+                    mmOutputStream.write((new Random()).nextInt(180));
+                } else {
+                    mmOutputStream.write(0);
+                }
+            }
+            mmOutputStream.write(Sequence.STOP_SEQUENCE);
         } catch (IOException e) {
             Toast.makeText(MainActivity.this, "Connection not established with the robot", Toast.LENGTH_LONG).show();
             e.printStackTrace();
